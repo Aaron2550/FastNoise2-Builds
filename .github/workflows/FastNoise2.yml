@@ -1,0 +1,50 @@
+name: Build FastNoise2
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  Build:
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            arch: x64
+
+          - os: ubuntu-latest
+            arch: x64
+
+          - os: ubuntu-latest
+            arch: arm64
+
+          - os: macos-latest
+            arch: arm64
+
+    steps:
+    - name: Clone Repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12-dev'
+
+    - name: Install CMake
+      run: pip install cmake==3.27.7
+
+    - name: Create Build Files for Make
+      run: |
+        cd FastNoise2
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DFASTNOISE2_NOISETOOL=OFF -DBUILD_SHARED_LIBS=ON -DCMAKE_C_FLAGS_RELEASE="-O3 -flto" -DCMAKE_CXX_FLAGS_RELEASE="-O3 -flto" -G "Unix Makefiles"
+
+    - name: Build FastNoise2 using Make
+      run: cmake --build ${{github.workspace}}/build --config Release
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{matrix.os}}-${{matrix.arch}}
+        path: ${{github.workspace}}/build
